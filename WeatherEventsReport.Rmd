@@ -1,0 +1,21 @@
+---
+title: "Weather Events - Damage and Casualties"
+author: "Peter Olsen"
+date: "November 19, 2015"
+output: html_document
+---
+
+##Clean data
+```{r}
+# clear out global environment, 
+rm(list=ls())  
+
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

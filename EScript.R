@@ -31,6 +31,9 @@ names <- colnames(d)
 
 rdate <- as.POSIXct("1/1/1996", "%m/%d/%Y", tz="")
 dt <- d[which(strptime(as.character(d$BGN_DATE), "%m/%d/%Y %H:%M:%S") > rdate),]
+
+##MAKE CHANGE TO Incorrect value pointed out by TA on Discussion board.
+d[d$REFNUM == 605943,"PROPDMGEXP"] <- "M" 
  
 dt$PROPX[dt$PROPDMGEXP %in% c("K","k") ] <- 1000
 dt$PROPX[dt$PROPDMGEXP %in% c("M","m") ] <- 1000000
