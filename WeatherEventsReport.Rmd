@@ -166,17 +166,32 @@ for (j in 1:nrow(data)){
 }
 ```
 
-PLOT
-```{g}
-d1 <- data %>% group_by(EventType) %>% summarise_each(funs(sum))
+Plot the Top economic costs events.
+```{r}
+d1 <- subset(data, data$EconCost >0 & data$EventType %in% ValidNames )
+
+d1 <- d1 %>% group_by(EventType) %>% summarise_each(funs(sum))
+d1$EventType <- factor(d1$EventType, levels = d1$EventType[order(d1$EconCost)])
+
+
 
 g <- ggplot(d1, aes(EventType, EconCost))
 g + geom_bar(stat = "identity") +
   coord_flip()
 ```
 
+Plot the Top Casualty causing events
+```{r}
+d2 <- subset(data, data$Casualties > 0)
 
+d2 <- d2 %>% group_by(EventType) %>% summarise_each(funs(sum))
+d2$EventType <- factor(d2$EventType, levels = d2$EventType[order(d2$Casualties)])
 
+g <- ggplot(d2, aes(EventType, Casualties))
+g + geom_bar(stat = "identity") +
+  coord_flip()
+
+```
 Session information for system used to create this report:
 ```{r}
 sessionInfo()
