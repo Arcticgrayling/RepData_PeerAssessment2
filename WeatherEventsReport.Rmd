@@ -68,10 +68,8 @@ data <- mutate(data, CropDamage = CROPX * CROPDMG)
 For my analysis I will be using a total for crop damages and property damages called EconCost.  
 This will represent the total recorded cost of a weather event.
 ```{r}
-#data$EconCost <- data %>% sapply(data$value,function(x)sum(x < data$value) / nrow(data))
 data <- mutate(data, EconCost = mapvalues(CropDamage, NA, 0) + 
                        mapvalues(PropertyDamage, NA, 0))
-#data <- mutate(data, EconCost = cumsum(CropDamage, PropertyDamage, na.rm=TRUE))
 ```
 
 For my analysis I will sum the Fatalities and Injuries into a value called Casualties.  I will use this number to represent the recorded harm to human health caused by a weather event.
