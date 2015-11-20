@@ -66,8 +66,9 @@ data <- mutate(data, CropDamage = CROPX * CROPDMG)
 ```
 
 For my analysis I will be using a total for crop damages and property damages called EconCost.  
-This will represent the total recorded cost of a weather event.
+This will represent the total recorded economic cost of a weather event.
 ```{r}
+## remove NA values with mapvalues so EconCost will not be NA
 data <- mutate(data, EconCost = mapvalues(CropDamage, NA, 0) + 
                        mapvalues(PropertyDamage, NA, 0))
 ```
@@ -165,7 +166,18 @@ for (j in 1:nrow(data)){
 }
 ```
 
-System info for setup used to create this report:
+PLOT
+```{g}
+d1 <- data %>% group_by(EventType) %>% summarise_each(funs(sum))
+
+g <- ggplot(d1, aes(EventType, EconCost))
+g + geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+
+
+Session information for system used to create this report:
 ```{r}
 sessionInfo()
 ```

@@ -8,8 +8,9 @@ rm(list=ls())
 ## Loading and preprocessing the data
 
 ```{r, echo = TRUE, results = "hide", warnings = FALSE, message= FALSE, errors=FALSE}
+rm(list=ls()) 
 setwd("~/Documents/datasciencecoursera/ReproducibleResearch/PA2")
-d <- read.csv(bzfile("repdata-data-StormData.csv.bz2"))
+#d <- read.csv(bzfile("repdata-data-StormData.csv.bz2"))
 d <- readRDS(file="stormData.RDS")
 #saveRDS(d, file="stormData.RDS")
 library(plyr)
@@ -113,6 +114,14 @@ propertyData <- propertyData[propertyData$TotalPropertyDamage > 0,]
 propertyData <- aggregate(TotalPropertyDamage ~ EventType, data = propertyData, FUN = "sum")
 
 orderedData <- propertyData[order(propertyData$TotalPropertyDamage, decreasing = TRUE)[1:156],]
+
+sessionInfo()
+
+
+c <- NA
+x <- 1
+
+sum(c,1,na.rm=TRUE) 
 
 # Eventes types with fatalities
 #eventsFatal <- d1[d1$Fatalities > 0,]
