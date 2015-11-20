@@ -5,17 +5,164 @@ date: "November 19, 2015"
 output: html_document
 ---
 
-##Clean data
+##Data Processing
 ```{r}
 # clear out global environment, 
 rm(list=ls())  
 
+setwd("~/Documents/datasciencecoursera/ReproducibleResearch/PA2")
+d <- read.csv(bzfile("repdata-data-StormData.csv.bz2"))
+
+#load libraries
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(ggplot2)
+
+```
+#### Start Cleaning the Data
+
+From the Document https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf 
+page 6 we see that data for all weather types was not collected until January 1996.
+I believe this will give an inaccuate picture of what events cause the most problems because it 
+will show Tornados and other events that were recooded earlier as being more prevelant than they
+really are.
+```{r}
+# so I am going to limit dates to those before jan 1996
+rdate <- as.POSIXct("1/1/1996", "%m/%d/%Y", tz="")
+dt <- d[which(strptime(as.character(d$BGN_DATE), "%m/%d/%Y %H:%M:%S") > rdate),]
+```
+Lets also get rid of data that does not have any health or economic loss.
+I will do this by dropping rows that don't have any property, crop, injury or fatality data.
+
+```{r}
+#subset on events with damage to persons or property
+dsub <- subset(dt, dt$PROPDMG > 0 | dt$CROPDMG > 0 | 
+                   dt$FATALITIES > 0 | dt$INJURIES > 0)
 ```
 
-You can also embed plots, for example:
+The data has Crop damage and Property damage and multipliers in it.  I am going to calculate a total 
+property damage value.  This will be property damage times the the multiplier plus the same for crop damage- crop damage times the multiplier.  The multipliers need to be convert from a letter code to a numeric value.
+```{r}
 
-```{r, echo=FALSE}
-plot(cars)
+##First MAKE CHANGE TO Incorrect value pointed out by TA on Discussion board.
+dsub[dsub$REFNUM == 605943,"PROPDMGEXP"] <- "M" 
+ 
+dsub$PROPX[dsub$PROPDMGEXP %in% c("K","k") ] <- 1000
+dsub$PROPX[dsub$PROPDMGEXP %in% c("M","m") ] <- 1000000
+dsub$PROPX[dsub$PROPDMGEXP %in% c("B","b") ] <- 1000000000
+# now calculate and add a complete property damage value
+dsub <- mutate(dsub, PropertyDamage = PROPX * PROPDMG)  
+
+#Do the same for crops
+dsub$CROPX[dsub$CROPDMGEXP %in% c("K","k") ] <- 1000
+dsub$CROPX[dsub$CROPDMGEXP %in% c("M","m") ] <- 1000000
+dsub$CROPX[dsub$CROPDMGEXP %in% c("B","b") ] <- 1000000000
+# now calculate and add a complete property damage value
+dsub <- mutate(dsub, CropDamage = CROPX * CROPDMG) 
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+For my analysis I will be using a total for crop damages and property damages called EconCost.  
+This will represent the total recorded cost of a weather event.
+```{r}
+dsub <- mutate(dsub, EconCost = CropDamage + PropertyDamage)
+```
+
+For my analysis I will sum the Fatalities and Injuries into a value called Casualties.  I will use this number to represent the recorded harm to human health caused by a weather event.
+
+```{r}
+dsub <- mutate(dsub, Casualties=  FATALITIES + INJURIES)
+```
+At this point I will clean out the columns of data I will no longer need for my analysis.
+
+```{r}
+data <- dsub[ , c(8,42, 43)]
+
+c_names <- c("EventType","EconCost", "Casualties")
+colnames(data) <- c_names
+
+## remove uneeded data from memory
+rm(dt)
+rm(dsub)
+rm(d)
+```
+####Event Type names
+The event type names that are supposed to be used can be seen here:
+https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf 
+page 6
+I have added them to a vector to use for verification purposes.
+```{r}
+#list of valid names from report
+ValidNames <- c("Astronomical Low Tide", "Avalanche", "Blizzard", "Coastal Flood", "Cold/Wind Chill", 
+"Debris Flow", "Dense Fog", "Dense Smoke", "Drought", "Dust Devil","Dust Storm","Excessive Heat", 
+"Extreme Cold/Wind Chill", "Flash Flood", 
+"Flood", "Frost/Freeze", "Funnel Cloud", "Freezing Fog", "Hail", "Heat", "Heavy Rain", "Heavy Snow", 
+"High Surf", "High Wind", "Hurricane (Typhoon)", "Ice Storm", "Lake-Effect Snow", "Lakeshore Flood", 
+"Lightning", "Marine Hail", "Marine High Wind", "Marine Strong Wind", "Marine Thunderstorm Wind", 
+"Rip Current", "Seiche", "Sleet", "Storm Surge/Tide", "Strong Wind", "Thunderstorm Wind", 
+"Tornado", "Tropical Depression", "Tropical Storm", "Tsunami", "Volcanic Ash", "Waterspout", 
+"Wildfire", "Winter Storm", "Winter Weather")
+```
+
+
+There are a lot of Event type names that do not meet what is stated:We can see some of them here.
+```{r}
+head(unique(data[,1]), 20)
+```
+The next batch of code will correct the Event Type Names so they will be consistent which will help us analys them.  I have commented the code for each step.
+
+```{r}
+## trim extra spaces
+data[,1] <- str_trim(as.character(data[,1]), side = "both")
+
+## update Thunderstorm before other changes
+data[,1] <- sub("tstm","thunderstorm", data[,1], ignore.case = TRUE)
+
+##GET Captializations right
+data[,1] <- tolower(as.character(data[,1]))  ## start with all lower case
+## functions to Uppercase first letter
+capwords <- function(s, strict = FALSE) {
+        cap <- function(s) paste(toupper(substring(s, 1, 1)),
+{s <- substring(s, 2); if(strict) tolower(s) else s},
+sep = "", collapse = " " )
+sapply(strsplit(s, split = " "), cap, USE.NAMES = !is.null(names(s)))
+}
+## Capitalize words with / before
+capwordsSlash <- function(s, strict = FALSE) {
+        cap <- function(s) paste(toupper(substring(s, 1, 1)),
+{s <- substring(s, 2); if(strict) tolower(s) else s},
+sep = "", collapse = "/" )
+sapply(strsplit(s, split = "/"), cap, USE.NAMES = !is.null(names(s)))
+}
+# run functions
+data[,1] <- sapply(data[,1], capwords)
+data[,1] <- sapply(data[,1], capwordsSlash)
+
+#Make some changes to Event names with sub
+data[,1] <- sub("Thunderstorm Wind.+", "Thunderstorm Wind", data[,1], ignore.case = FALSE, perl = TRUE
+    )
+data[,1] <- sub(".*Snow.*", "Heavy Snow", data[,1], ignore.case = FALSE, perl = TRUE
+)
+
+data[,1] <- sub(".*wind.*", "High Wind", data[,1], ignore.case = TRUE, perl = TRUE
+)
+data[,1] <- sub(".*(hurricane|typhoon).*", "Hurricane (Typhoon)", data[,1], ignore.case = TRUE, perl = TRUE
+)
+
+data[,1] <- sub(".*Ice Jam Flood \\(minor.*", "Flood", data[,1], ignore.case = TRUE)
+
+# use the event update table to make more changes to the Event types to get them to match Valid Event names.
+updateTable <- read.csv("EventUpdate.csv", stringsAsFactors = FALSE)
+
+
+for (j in 1:nrow(data)){
+       if (data[j,][[1]] %in% ValidNames)
+               next
+    for (i in 1:nrow(updateTable)){
+        if (grepl (updateTable[i,][[1]], data[j,][[1]]) )
+                data[j,][[1]] <- updateTable[i,][[2]]        
+    }
+}
+```
+
