@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ##Data Processing
-```{r}
+```{r include=FALSE}
 # clear out global environment, 
 rm(list=ls())  
 
@@ -14,6 +14,7 @@ setwd("~/Documents/datasciencecoursera/ReproducibleResearch/PA2")
 d <- read.csv(bzfile("repdata-data-StormData.csv.bz2"))
 
 #load libraries
+library(plyr)
 library(dplyr)
 library(stringr)
 library(lubridate)
@@ -30,15 +31,15 @@ really are.
 ```{r}
 # so I am going to limit dates to those before jan 1996
 rdate <- as.POSIXct("1/1/1996", "%m/%d/%Y", tz="")
-dt <- d[which(strptime(as.character(d$BGN_DATE), "%m/%d/%Y %H:%M:%S") > rdate),]
+data<- d[which(strptime(as.character(d$BGN_DATE), "%m/%d/%Y %H:%M:%S") > rdate),]
 ```
 Lets also get rid of data that does not have any health or economic loss.
 I will do this by dropping rows that don't have any property, crop, injury or fatality data.
 
 ```{r}
 #subset on events with damage to persons or property
-dsub <- subset(dt, dt$PROPDMG > 0 | dt$CROPDMG > 0 | 
-                   dt$FATALITIES > 0 | dt$INJURIES > 0)
+data <- subset(data, data$PROPDMG > 0 | data$CROPDMG > 0 | 
+                   data$FATALITIES > 0 | data$INJURIES > 0)
 ```
 
 The data has Crop damage and Property damage and multipliers in it.  I am going to calculate a total 
@@ -46,46 +47,46 @@ property damage value.  This will be property damage times the the multiplier pl
 ```{r}
 
 ##First MAKE CHANGE TO Incorrect value pointed out by TA on Discussion board.
-dsub[dsub$REFNUM == 605943,"PROPDMGEXP"] <- "M" 
+data[data$REFNUM == 605943,"PROPDMGEXP"] <- "M" 
  
-dsub$PROPX[dsub$PROPDMGEXP %in% c("K","k") ] <- 1000
-dsub$PROPX[dsub$PROPDMGEXP %in% c("M","m") ] <- 1000000
-dsub$PROPX[dsub$PROPDMGEXP %in% c("B","b") ] <- 1000000000
+data$PROPX[data$PROPDMGEXP %in% c("K","k") ] <- 1000
+data$PROPX[data$PROPDMGEXP %in% c("M","m") ] <- 1000000
+data$PROPX[data$PROPDMGEXP %in% c("B","b") ] <- 1000000000
+
 # now calculate and add a complete property damage value
-dsub <- mutate(dsub, PropertyDamage = PROPX * PROPDMG)  
+data <- mutate(data, PropertyDamage = PROPX * PROPDMG)  
 
 #Do the same for crops
-dsub$CROPX[dsub$CROPDMGEXP %in% c("K","k") ] <- 1000
-dsub$CROPX[dsub$CROPDMGEXP %in% c("M","m") ] <- 1000000
-dsub$CROPX[dsub$CROPDMGEXP %in% c("B","b") ] <- 1000000000
+data$CROPX[data$CROPDMGEXP %in% c("K","k") ] <- 1000
+data$CROPX[data$CROPDMGEXP %in% c("M","m") ] <- 1000000
+data$CROPX[data$CROPDMGEXP %in% c("B","b") ] <- 1000000000
 # now calculate and add a complete property damage value
-dsub <- mutate(dsub, CropDamage = CROPX * CROPDMG) 
+data <- mutate(data, CropDamage = CROPX * CROPDMG) 
 
 ```
 
 For my analysis I will be using a total for crop damages and property damages called EconCost.  
 This will represent the total recorded cost of a weather event.
 ```{r}
-dsub <- mutate(dsub, EconCost = CropDamage + PropertyDamage)
+#data$EconCost <- data %>% sapply(data$value,function(x)sum(x < data$value) / nrow(data))
+data <- mutate(data, EconCost = mapvalues(CropDamage, NA, 0) + 
+                       mapvalues(PropertyDamage, NA, 0))
+#data <- mutate(data, EconCost = cumsum(CropDamage, PropertyDamage, na.rm=TRUE))
 ```
 
 For my analysis I will sum the Fatalities and Injuries into a value called Casualties.  I will use this number to represent the recorded harm to human health caused by a weather event.
 
 ```{r}
-dsub <- mutate(dsub, Casualties=  FATALITIES + INJURIES)
+data <- mutate(data, Casualties=  FATALITIES + INJURIES)
 ```
 At this point I will clean out the columns of data I will no longer need for my analysis.
 
 ```{r}
-data <- dsub[ , c(8,42, 43)]
+data <- data[ , c(8,42, 43)]
 
 c_names <- c("EventType","EconCost", "Casualties")
 colnames(data) <- c_names
 
-## remove uneeded data from memory
-rm(dt)
-rm(dsub)
-rm(d)
 ```
 ####Event Type names
 The event type names that are supposed to be used can be seen here:
@@ -106,7 +107,7 @@ ValidNames <- c("Astronomical Low Tide", "Avalanche", "Blizzard", "Coastal Flood
 ```
 
 
-There are a lot of Event type names that do not meet what is stated:We can see some of them here.
+There are a lot more Event Type names than the 48 listed. We can see some of them here.
 ```{r}
 head(unique(data[,1]), 20)
 ```
@@ -166,3 +167,7 @@ for (j in 1:nrow(data)){
 }
 ```
 
+System info for setup used to create this report:
+```{r}
+sessionInfo()
+```
