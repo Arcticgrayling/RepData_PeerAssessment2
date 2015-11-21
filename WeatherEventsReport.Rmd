@@ -161,6 +161,8 @@ The following code uses the event update table to make the remaining changes to 
 ```{r}
 ## search through Event names, if they are not valid, change them to valid names using the update
 ##table
+updateTable <- read.csv("EventUpdate.csv", stringsAsFactors = FALSE)
+
 for (j in 1:nrow(data)){
        if (data[j,][[1]] %in% ValidNames)
                next
