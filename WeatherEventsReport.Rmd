@@ -155,15 +155,8 @@ data[,1] <- sub(".*(hurricane|typhoon).*", "Hurricane (Typhoon)", data[,1], igno
 
 data[,1] <- sub(".*Ice Jam Flood \\(minor.*", "Flood", data[,1], ignore.case = TRUE)
 ```
-Next I used an update table to make changes to the remaining incorrect event types.  I had create the update table by hand, but I am including a print out of it below so it can be reproduced.
-
-Here is a printout of the update table used to correct Event Type values.
-```{r}
-updateTable <- read.csv("EventUpdate.csv", stringsAsFactors = FALSE)
-
-print(updateTable)
-```
-  
+Next I used an update table to make changes to the remaining incorrect event types.  I had create the update table by hand, but I am including a print out of it the appendix so it can be reproduced.
+   
 The following code uses the event update table to make the remaining changes to Event Type names.
 ```{r}
 ## search through Event names, if they are not valid, change them to valid names using the update
@@ -223,8 +216,16 @@ g + geom_bar(stat = "identity", fill="#D55E00") +
            y = "Total Casualties")
 
 ```
-  
-#### Session information for the system used to create this report:
+## Appendix
+####1. Event Type update table
+Here is a printout of the update table used to correct Event Type values.
+```{r}
+updateTable <- read.csv("EventUpdate.csv", stringsAsFactors = FALSE)
+
+print(updateTable)
+```
+
+####2. Session information for the system used to create this report:
 ```{r}
 sessionInfo()
 ```
