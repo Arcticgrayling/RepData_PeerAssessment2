@@ -186,14 +186,19 @@ Here is a graph showing the Weather Events with the greatest Economic Costs on t
 ## remove any remaining event types that don't match Valid Names
 d1 <- subset(data, data$EconCost >0 & data$EventType %in% ValidNames )
 
+d1$EconCost <- d1$EconCost / 1000000000 
+
 ##group and order events
 d1 <- d1 %>% group_by(EventType) %>% summarise_each(funs(sum))
+d1 <- arrange(d1,desc(EconCost))
 d1$EventType <- factor(d1$EventType, levels = d1$EventType[order(d1$EconCost)])
 
 ##Plot events by EconCost
-g <- ggplot(d1, aes(EventType, EconCost))
+g <- ggplot(d1[1:25,], aes(EventType, EconCost))
 g + geom_bar(stat = "identity", fill="#0072B2") + coord_flip() +
-        labs(title="Top Weather Event Types by Total Economic Cost")
+        labs(title="Top Weather Event Types by Total Economic Cost",
+             x = "Event Type",
+             y = "Total Economic Cost(Billions of dollars)")
 
 ```
 
@@ -213,7 +218,9 @@ d2$EventType <- factor(d2$EventType, levels = d2$EventType[order(d2$Casualties)]
 g <- ggplot(d2, aes(EventType, Casualties))
 g + geom_bar(stat = "identity", fill="#D55E00") +
       coord_flip() +
-      labs(title="Top Weather Event Types by Total Casualties")
+      labs(title="Top Weather Event Types by Total Casualties",
+           x="Event Type",
+           y = "Total Casualties")
 
 ```
   
