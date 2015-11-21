@@ -9,7 +9,7 @@ output: html_document
 This report will take NOAA weather data and determine which weather events cause the most harm to human health and the most economic damage.  The data will be cleanned to accurately and consistently represent the weather types and damage.  Graphs will be produced that will show the weather events that are most problematic. 
 
 ##Data Processing
-```{r include=FALSE}
+```{r}
 # clear out global environment, 
 rm(list=ls())  
 
