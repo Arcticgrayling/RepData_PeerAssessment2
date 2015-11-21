@@ -1,9 +1,12 @@
 ---
 title: "Weather Events - Damage and Casualties"
 author: "Peter Olsen"
-date: "November 19, 2015"
+date: "November, 2015"
 output: html_document
 ---
+
+####Synopsis
+This report will take NOAA weather data and determine which weather events cause the most harm to human health and the most economic damage.  The data will be cleanned to accurately and consistently represent the weather types and damage.  Graphs will be produced that will show the weather events that are most problematic. 
 
 ##Data Processing
 ```{r include=FALSE}
@@ -25,16 +28,15 @@ library(ggplot2)
 
 From the Document https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf 
 page 6 we see that data for all weather types was not collected until January 1996.
-I believe this will give an inaccuate picture of what events cause the most problems because it 
-will show Tornados and other events that were recooded earlier as being more prevelant than they
-really are.
+The belief is this will give an inaccuate picture of what events cause the most problems because it 
+will show Tornados and other events that were recorded earlier as being more prevelant in total than other events that were only recoreded after 1996.
 ```{r}
-# so I am going to limit dates to those before jan 1996
+#  limit data to that with dates before jan 1996
 rdate <- as.POSIXct("1/1/1996", "%m/%d/%Y", tz="")
 data<- d[which(strptime(as.character(d$BGN_DATE), "%m/%d/%Y %H:%M:%S") > rdate),]
 ```
-Lets also get rid of data that does not have any health or economic loss.
-I will do this by dropping rows that don't have any property, crop, injury or fatality data.
+Lets also get rid of data that does not report any health or economic loss.
+We will do this by dropping rows that don't have any property, crop, injury or fatality data.
 
 ```{r}
 #subset on events with damage to persons or property
@@ -42,7 +44,7 @@ data <- subset(data, data$PROPDMG > 0 | data$CROPDMG > 0 |
                    data$FATALITIES > 0 | data$INJURIES > 0)
 ```
 
-The data has Crop damage and Property damage and multipliers in it.  I am going to calculate a total 
+The data has Crop damage and Property damage numbers and multipliers in it.  I am going to calculate a total 
 property damage value.  This will be property damage times the the multiplier plus the same for crop damage- crop damage times the multiplier.  The multipliers need to be convert from a letter code to a numeric value.
 ```{r}
 
@@ -78,7 +80,7 @@ For my analysis I will sum the Fatalities and Injuries into a value called Casua
 ```{r}
 data <- mutate(data, Casualties=  FATALITIES + INJURIES)
 ```
-At this point I will clean out the columns of data I will no longer need for my analysis.
+At this point I will clean out the columns of data I will no longer need for analysis.
 
 ```{r}
 data <- data[ , c(8,42, 43)]
@@ -87,7 +89,7 @@ c_names <- c("EventType","EconCost", "Casualties")
 colnames(data) <- c_names
 
 ```
-####Event Type names
+#### Correcting Event Type names
 The event type names that are supposed to be used can be seen here:
 https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf 
 page 6
@@ -110,7 +112,7 @@ There are a lot more Event Type names than the 48 listed. We can see some of the
 ```{r}
 head(unique(data[,1]), 20)
 ```
-The next batch of code will correct the Event Type Names so they will be consistent which will help us analys them.  I have commented the code for each step.
+The next batch of code will correct some the Event Type Names so they will be consistent.  I have commented the code for each step.
 
 ```{r}
 ## trim extra spaces
@@ -119,7 +121,7 @@ data[,1] <- str_trim(as.character(data[,1]), side = "both")
 ## update Thunderstorm before other changes
 data[,1] <- sub("tstm","thunderstorm", data[,1], ignore.case = TRUE)
 
-##GET Captializations right
+##function to Capitalise words at begining for with space beforehand 
 data[,1] <- tolower(as.character(data[,1]))  ## start with all lower case
 ## functions to Uppercase first letter
 capwords <- function(s, strict = FALSE) {
@@ -128,7 +130,7 @@ capwords <- function(s, strict = FALSE) {
 sep = "", collapse = " " )
 sapply(strsplit(s, split = " "), cap, USE.NAMES = !is.null(names(s)))
 }
-## Capitalize words with / before
+## Capitalise words with / before them
 capwordsSlash <- function(s, strict = FALSE) {
         cap <- function(s) paste(toupper(substring(s, 1, 1)),
 {s <- substring(s, 2); if(strict) tolower(s) else s},
@@ -139,7 +141,8 @@ sapply(strsplit(s, split = "/"), cap, USE.NAMES = !is.null(names(s)))
 data[,1] <- sapply(data[,1], capwords)
 data[,1] <- sapply(data[,1], capwordsSlash)
 
-#Make some changes to Event names with sub
+#Make some changes to Event names before running replacement table.
+## These correct several problems and helped reduce the size of the update table.
 data[,1] <- sub("Thunderstorm Wind.+", "Thunderstorm Wind", data[,1], ignore.case = FALSE, perl = TRUE
     )
 data[,1] <- sub(".*Snow.*", "Heavy Snow", data[,1], ignore.case = FALSE, perl = TRUE
@@ -151,11 +154,20 @@ data[,1] <- sub(".*(hurricane|typhoon).*", "Hurricane (Typhoon)", data[,1], igno
 )
 
 data[,1] <- sub(".*Ice Jam Flood \\(minor.*", "Flood", data[,1], ignore.case = TRUE)
+```
+Next I used an update table to make changes to the remaining incorrect event types.  I had create the update table by hand, but I am including a print out of it below so it can be reproduced.
 
-# use the event update table to make more changes to the Event types to get them to match Valid Event names.
+Here is a printout of the update table used to correct Event Type values.
+```{r}
 updateTable <- read.csv("EventUpdate.csv", stringsAsFactors = FALSE)
 
-
+print(updateTable)
+```
+  
+The following code uses the event update table to make the remaining changes to Event Type names.
+```{r}
+## search through Event names, if they are not valid, change them to valid names using the update
+##table
 for (j in 1:nrow(data)){
        if (data[j,][[1]] %in% ValidNames)
                next
@@ -165,42 +177,47 @@ for (j in 1:nrow(data)){
     }
 }
 ```
-Here is a printout of the update table used to correct Event Type values.
-```{r}
-print(updateTable)
-```
-
 
 ## RESULTS
-
-Here is a graph of the top Economic Cost events.
+The Results can be clearly seen by these graphs.  
+Here is a graph showing the Weather Events with the greatest Economic Costs on top.
 ```{r}
+## include just event types with economic costs and 
+## remove any remaining event types that don't match Valid Names
 d1 <- subset(data, data$EconCost >0 & data$EventType %in% ValidNames )
 
+##group and order events
 d1 <- d1 %>% group_by(EventType) %>% summarise_each(funs(sum))
 d1$EventType <- factor(d1$EventType, levels = d1$EventType[order(d1$EconCost)])
 
-
-
+##Plot events by EconCost
 g <- ggplot(d1, aes(EventType, EconCost))
-g + geom_bar(stat = "identity") +
-  coord_flip()
+g + geom_bar(stat = "identity", fill="#0072B2") + coord_flip() +
+        labs(title="Top Weather Event Types by Total Economic Cost")
+
 ```
 
-Here is a graph of the top Casualty causing weather events
+Here is a graph of the Weather Events showing the greater Casualty rates on top.
 ```{r}
-d2 <- subset(data, data$Casualties > 0)
 
+## include just event types with casualties and
+## remove any remaining invalid type names
+d2 <- subset(data, data$Casualties > 0 & data$EventType %in% ValidNames)
+
+## group by event type and summarise
 d2 <- d2 %>% group_by(EventType) %>% summarise_each(funs(sum))
+##order the Events by number of casulties
 d2$EventType <- factor(d2$EventType, levels = d2$EventType[order(d2$Casualties)])
 
+##Plot results for casualties
 g <- ggplot(d2, aes(EventType, Casualties))
-g + geom_bar(stat = "identity") +
-  coord_flip()
+g + geom_bar(stat = "identity", fill="#D55E00") +
+      coord_flip() +
+      labs(title="Top Weather Event Types by Total Casualties")
 
 ```
-
-Session information for system used to create this report:
+  
+#### Session information for the system used to create this report:
 ```{r}
 sessionInfo()
 ```
