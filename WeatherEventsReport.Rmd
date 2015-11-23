@@ -4,7 +4,7 @@ author: "Peter Olsen"
 date: "November, 2015"
 output: html_document
 ---
-
+  
 ####Synopsis
 This report will take NOAA weather data and determine which weather events cause the most harm to human health and the most economic damage.  The data will be cleanned to accurately and consistently represent the weather types and damage.  Graphs will be produced that will show the weather events that are most problematic. 
 
@@ -218,7 +218,8 @@ g + geom_bar(stat = "identity", fill="#D55E00") +
            y = "Total Casualties")
 
 ```
-## Appendix
+  
+## Appendix  
 ####1. Event Type update table
 Here is a printout of the update table used to correct Event Type values.
 ```{r}
